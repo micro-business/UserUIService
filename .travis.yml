@@ -1,0 +1,20 @@
+language: clojure
+
+lein: 2.7.1
+
+services:
+ - docker
+ 
+script:
+  - lein cljsbuild once test
+
+after_success:
+  - lein deploy
+  - lein cljsbuild once prod
+  - docker login -u $DOCKER_USER -p $DOCKER_PASS
+  - export REPO_NAME_EXTENSION=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo ""; else echo -$TRAVIS_BRANCH ; fi`
+  - export REPO=microbusiness/useruiservice$REPO_NAME_EXTENSION
+  - export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH ; fi`
+  - docker build -f Dockerfile -t $REPO .
+  - docker tag $REPO $REPO:travis-$TRAVIS_BUILD_NUMBER
+  - docker push $REPO
